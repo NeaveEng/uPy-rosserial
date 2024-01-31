@@ -14,7 +14,7 @@ import uio
 from rosserial_msgs import TopicInfo
 
 # for now threads are used, will be changed with asyncio in the future
-if sys.platform == "esp32":
+if (sys.platform == "esp32") or (sys.platform == "rp2"):
     import _thread as threading
 else:
     import threading
@@ -22,7 +22,10 @@ else:
 # rosserial protocol header
 header = [0xFF, 0xFE]
 
-logging.basicConfig(level=logging.INFO)
+print(f"[{sys.platform}]")
+
+if sys.platform != "rp2":
+    logging.basicConfig(level=logging.INFO)
 
 # class to manage publish and subscribe
 # COULD BE CHANGED AFTERWARDS
@@ -60,7 +63,7 @@ class NodeHandle:
             self.uart = m.UART(self.serial_id, self.baudrate)
             self.uart.init(self.baudrate, bits=8, parity=None, stop=1, txbuf=0)
 
-        if sys.platform == "esp32":
+        if (sys.platform == "esp32") or (sys.platform == "rp2"):
             threading.start_new_thread(self._listen, ())
         else:
             threading.Thread(target=self._listen).start()
@@ -116,10 +119,11 @@ class NodeHandle:
             self._id += 1
 
         # same as advertise
-        packet = uio.StringIO()
+        packet = uio.BytesIO()
         msg.serialize(packet)
-
-        packet = list(packet.getvalue().encode("utf-8"))
+        packet_value = packet.getvalue() 
+        print(f"Packet: Packet: {packet}")
+        packet = list(packet_value)
         length = len(packet)
 
         topic_id = _le(self.advertised_topics.get(topic_name)[0])
